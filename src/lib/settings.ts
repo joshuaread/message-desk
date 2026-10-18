@@ -4,6 +4,7 @@ export type DeskSettings = {
   siteUrl: string;
   username: string;
   appPassword: string;
+  xaiApiKey: string;
   speaker: string;
   series: string;
   serviceTime: string;
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: DeskSettings = {
   siteUrl: "https://citizenschur.ch",
   username: "",
   appPassword: "",
+  xaiApiKey: "",
   speaker: "",
   series: "",
   serviceTime: "10:00",

@@ -4,7 +4,7 @@ import { detectSermon, type Detection } from "@/lib/audio/detect";
 import { encodeSermonMp3, bytesToBase64, type CleanOptions } from "@/lib/audio/encode";
 import { makeSampleService } from "@/lib/audio/sample";
 import { analyzeWav, fileSource, type Analysis } from "@/lib/audio/wav";
-import { suggestSermon, transcribeAudio } from "@/lib/ai";
+import { suggestSermon, suggestSermonInBrowser, transcribeAudio, transcribeAudioInBrowser } from "@/lib/ai";
 import {
   confidenceLabel,
   formatBytes,
@@ -331,6 +331,12 @@ export function Desk() {
       setError("That selection is over about 90 minutes. Trim it a bit before transcribing.");
       return;
     }
+    const typedKey = settings.xaiApiKey.trim();
+    const useBrowser = import.meta.env.VITE_GITHUB_PAGES === "1" || Boolean(typedKey);
+    if (useBrowser && !typedKey) {
+      setError("Add an xAI API key. It stays in this browser.");
+      return;
+    }
     const parts: string[] = [];
     try {
       for (let index = 0; index < chunks.length; index += 1) {
@@ -351,19 +357,25 @@ export function Desk() {
             setProgress({ ratio: overall, label: `Preparing audio ${index + 1} of ${chunks.length}` });
           },
         );
-        const audioBase64 = bytesToBase64(bytes);
-        if (audioBase64.length > 3_600_000) throw new Error("A transcription piece came out too large. Try a shorter trim.");
+        if (bytes.byteLength > 2_700_000) throw new Error("A transcription piece came out too large. Try a shorter trim.");
         setProgress({
           ratio: (index + 0.7) / chunks.length,
           label: `Transcribing ${index + 1} of ${chunks.length}`,
         });
-        const result = await transcribeAudio({
-          data: {
-            audioBase64,
-            mime: "audio/mpeg",
-            keyterms: sermonKeyterms(meta.speaker, meta.scripture),
-          },
-        });
+        const keyterms = sermonKeyterms(meta.speaker, meta.scripture);
+        const result = useBrowser
+          ? await transcribeAudioInBrowser(typedKey, {
+              file: bytesToBlob(bytes, "audio/mpeg"),
+              filename: "sermon.mp3",
+              keyterms,
+            })
+          : await transcribeAudio({
+              data: {
+                audioBase64: bytesToBase64(bytes),
+                mime: "audio/mpeg",
+                keyterms,
+              },
+            });
         if (!result.ok) throw new Error(result.error);
         const text = result.words.length ? wordsToTranscript(result.words) : result.text;
         if (text.trim()) parts.push(text.trim());
@@ -383,10 +395,18 @@ export function Desk() {
 
   async function onSuggest() {
     setError("");
+    const typedKey = settings.xaiApiKey.trim();
+    const useBrowser = import.meta.env.VITE_GITHUB_PAGES === "1" || Boolean(typedKey);
+    if (useBrowser && !typedKey) {
+      setError("Add an xAI API key. It stays in this browser.");
+      return;
+    }
     setProgress({ ratio: 0.4, label: "Suggesting a title" });
-    const result = await suggestSermon({
-      data: { transcript: clipForSuggestion(meta.transcript), speaker: meta.speaker },
-    });
+    const result = useBrowser
+      ? await suggestSermonInBrowser(typedKey, { transcript: clipForSuggestion(meta.transcript), speaker: meta.speaker })
+      : await suggestSermon({
+          data: { transcript: clipForSuggestion(meta.transcript), speaker: meta.speaker },
+        });
     setProgress(null);
     if (!result.ok) {
       setError(result.error);
@@ -770,15 +790,31 @@ export function Desk() {
                 <div>
                   <h2 className="font-display text-xl">Sermon</h2>
                   <p className="mt-1 text-sm text-muted">
-                    {import.meta.env.VITE_GITHUB_PAGES === "1"
-                      ? "GitHub Pages has no server, so Transcribe and Suggest stay off here. Trim, the MP3, download, and posting to the church site still work."
-                      : `Transcription is ${formatCost(selection)} at 10¢ an hour on your xAI account. A full sermon can take a few minutes — leave the tab open.`}
+                    Transcription is {formatCost(selection)} at 10¢ an hour. A full sermon can take a few minutes — leave the tab open.
                   </p>
                 </div>
                 <button type="button" className="btn-primary" disabled={Boolean(progress)} onClick={() => void onTranscribe()}>
                   Transcribe
                 </button>
               </div>
+              <label className="block text-sm">
+                <span className="mb-1 block text-muted">xAI API key</span>
+                <input
+                  type="password"
+                  className={fieldClass}
+                  autoComplete="off"
+                  value={settings.xaiApiKey}
+                  placeholder="xai-…"
+                  onChange={(event) => setSettings((current) => ({ ...current, xaiApiKey: event.target.value }))}
+                />
+                <span className="mt-1 block text-muted">
+                  Create one at{" "}
+                  <a className="text-gold-deep underline-offset-4 hover:underline" href="https://console.x.ai">
+                    console.x.ai
+                  </a>
+                  . Stored only in this browser and sent only to xAI. Don’t use a shared computer.
+                </span>
+              </label>
               {staleTranscript && (
                 <p className="text-sm text-gold-deep">The trim moved after this transcript was written. Transcribe again if the words should match the new cut.</p>
               )}
