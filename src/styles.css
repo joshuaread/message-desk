@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Outfit", system-ui, sans-serif;
+  --color-bg: #f3eee6;
+  --color-surface: #fffdf9;
+  --color-ink: #1c1814;
+  --color-muted: #6e655b;
+  --color-line: #e4dacb;
+  --color-gold: #9a7432;
+  --color-gold-deep: #6d4f1c;
+  --color-gold-soft: #f3e6cf;
+  --color-speech: #ead9b4;
+  --color-music: #ddd6cc;
+  --color-danger: #8c3a32;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-gold-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary,
+  .btn-secondary,
+  .btn-quiet {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .btn-primary {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-gold-deep);
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--color-gold-soft);
+  }
+
+  .btn-quiet {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-ink);
+    min-height: 2.5rem;
+  }
+
+  .btn-quiet:hover:not(:disabled) {
+    background: var(--color-gold-soft);
+  }
+
+  .btn-primary:disabled,
+  .btn-secondary:disabled,
+  .btn-quiet:disabled {
+    opacity: 0.5;
+  }
+}
