@@ -15,6 +15,13 @@ export type RecentSermon = {
 export type MediaResult = { id: number; source_url: string };
 export type SermonResult = { id: number; link: string; status: string; audioSaved: boolean };
 
+const DESK_HEADER = "X-Message-Desk";
+const PLUGIN_HINT =
+  "The password is fine. Flywheel drops it before WordPress sees it. In WordPress, upload and activate the Message Desk Auth plugin, then try again.";
+
+type AuthMode = "standard" | "flywheel";
+let preferred: AuthMode | null = null;
+
 export function normalizeSite(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) throw new Error("Add the church site URL.");
@@ -44,6 +51,17 @@ function api(creds: WpCreds, path: string): string {
   return `${normalizeSite(creds.siteUrl)}/wp-json/wp/v2${path}`;
 }
 
+function applyAuth(target: Headers | XMLHttpRequest, creds: WpCreds, mode: AuthMode): void {
+  const basic = authHeader(creds);
+  if (target instanceof Headers) {
+    target.set("Authorization", basic);
+    if (mode === "flywheel") target.set(DESK_HEADER, basic);
+    return;
+  }
+  target.setRequestHeader("Authorization", basic);
+  if (mode === "flywheel") target.setRequestHeader(DESK_HEADER, basic);
+}
+
 function stripHtml(value: string): string {
   return value
     .replace(/<[^>]+>/g, "")
@@ -58,15 +76,29 @@ function stripHtml(value: string): string {
     .trim();
 }
 
+function bodyCode(body: unknown): string {
+  if (!body || typeof body !== "object" || !("code" in body)) return "";
+  return String((body as { code: unknown }).code);
+}
+
 function wpMessage(body: unknown, status: number): string {
   const record = body && typeof body === "object" ? (body as { message?: unknown }) : {};
   const message = typeof record.message === "string" ? stripHtml(record.message) : "";
+  const code = bodyCode(body);
+  if (code === "rest_not_logged_in" || (status === 401 && /not currently logged in/i.test(message))) {
+    return PLUGIN_HINT;
+  }
   if (status === 401) {
-    return "WordPress rejected that login. Use an Application Password from Users → Profile — not the password you type to log in.";
+    return "WordPress rejected that login. Use the username from Users → Profile, and an Application Password from that same screen — not the password you type to log in.";
   }
   if (status === 403) return message || "That user can’t upload or create sermons.";
   if (message) return message;
   return `The site returned an error (${status}).`;
+}
+
+function loginWasDropped(body: unknown, status: number): boolean {
+  const code = bodyCode(body);
+  return code === "rest_not_logged_in" || code === "rest_cannot_create";
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -79,13 +111,48 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-export async function testConnection(creds: WpCreds): Promise<{ name: string }> {
+async function resolveMode(creds: WpCreds): Promise<AuthMode> {
   if (!creds.username.trim() || !creds.appPassword.trim()) {
     throw new Error("Add the WordPress username and application password.");
   }
-  const response = await fetch(api(creds, "/users/me?context=edit"), {
-    headers: { Authorization: authHeader(creds) },
+  if (preferred) return preferred;
+  const standard = await fetch(api(creds, "/users/me?context=edit"), {
+    headers: (() => {
+      const headers = new Headers();
+      applyAuth(headers, creds, "standard");
+      return headers;
+    })(),
   });
+  if (standard.ok) {
+    preferred = "standard";
+    return preferred;
+  }
+  const body = await readJson(standard);
+  if (!loginWasDropped(body, standard.status)) throw new Error(wpMessage(body, standard.status));
+  let retry: Response;
+  try {
+    const headers = new Headers();
+    applyAuth(headers, creds, "flywheel");
+    retry = await fetch(api(creds, "/users/me?context=edit"), { headers });
+  } catch (error) {
+    if (error instanceof TypeError) throw new Error(PLUGIN_HINT);
+    throw error;
+  }
+  if (!retry.ok) {
+    const retryBody = await readJson(retry);
+    if (loginWasDropped(retryBody, retry.status)) throw new Error(PLUGIN_HINT);
+    throw new Error(wpMessage(retryBody, retry.status));
+  }
+  preferred = "flywheel";
+  return preferred;
+}
+
+export async function testConnection(creds: WpCreds): Promise<{ name: string }> {
+  preferred = null;
+  const mode = await resolveMode(creds);
+  const headers = new Headers();
+  applyAuth(headers, creds, mode);
+  const response = await fetch(api(creds, "/users/me?context=edit"), { headers });
   const body = await readJson(response);
   if (!response.ok) throw new Error(wpMessage(body, response.status));
   const name = body && typeof body === "object" && "name" in body ? String((body as { name: unknown }).name) : creds.username;
@@ -99,32 +166,40 @@ export function uploadMedia(
   onProgress?: (ratio: number) => void,
 ): Promise<MediaResult> {
   const safe = filename.replace(/["\\]/g, "").replace(/[^\w.\-]+/g, "-");
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", api(creds, "/media"));
-    xhr.setRequestHeader("Authorization", authHeader(creds));
-    xhr.setRequestHeader("Content-Type", "audio/mpeg");
-    xhr.setRequestHeader("Content-Disposition", `attachment; filename="${safe}"`);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total);
-    };
-    xhr.onload = () => {
-      let body: unknown = {};
-      try {
-        body = JSON.parse(xhr.responseText) as unknown;
-      } catch {
-        body = { message: xhr.responseText.slice(0, 240) };
-      }
-      const record = body && typeof body === "object" ? (body as { id?: unknown; source_url?: unknown }) : {};
-      if (xhr.status >= 200 && xhr.status < 300 && typeof record.source_url === "string" && typeof record.id === "number") {
-        resolve({ id: record.id, source_url: record.source_url });
-        return;
-      }
-      reject(new Error(wpMessage(body, xhr.status)));
-    };
-    xhr.onerror = () => reject(new Error("Couldn’t reach the church site. Check the URL, then try again."));
-    xhr.send(blob);
-  });
+  return resolveMode(creds).then(
+    (mode) =>
+      new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", api(creds, "/media"));
+        applyAuth(xhr, creds, mode);
+        xhr.setRequestHeader("Content-Type", "audio/mpeg");
+        xhr.setRequestHeader("Content-Disposition", `attachment; filename="${safe}"`);
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total);
+        };
+        xhr.onload = () => {
+          let body: unknown = {};
+          try {
+            body = JSON.parse(xhr.responseText) as unknown;
+          } catch {
+            body = { message: xhr.responseText.slice(0, 240) };
+          }
+          const record = body && typeof body === "object" ? (body as { id?: unknown; source_url?: unknown }) : {};
+          if (xhr.status >= 200 && xhr.status < 300 && typeof record.source_url === "string" && typeof record.id === "number") {
+            resolve({ id: record.id, source_url: record.source_url });
+            return;
+          }
+          if (loginWasDropped(body, xhr.status)) {
+            preferred = null;
+            reject(new Error(PLUGIN_HINT));
+            return;
+          }
+          reject(new Error(wpMessage(body, xhr.status)));
+        };
+        xhr.onerror = () => reject(new Error(mode === "flywheel" ? PLUGIN_HINT : "Couldn’t reach the church site. Check the URL, then try again."));
+        xhr.send(blob);
+      }),
+  );
 }
 
 export async function createSermon(
@@ -141,6 +216,7 @@ export async function createSermon(
     transcript: string;
   },
 ): Promise<SermonResult> {
+  const mode = await resolveMode(creds);
   const payload: Record<string, unknown> = {
     title: { raw: sermon.title.trim() },
     status: sermon.status,
@@ -154,16 +230,27 @@ export async function createSermon(
     },
   };
   if (sermon.summary.trim()) payload.excerpt = { raw: sermon.summary.trim() };
-  const response = await fetch(api(creds, "/sermon"), {
-    method: "POST",
-    headers: {
-      Authorization: authHeader(creds),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const headers = new Headers({ "Content-Type": "application/json" });
+  applyAuth(headers, creds, mode);
+  let response: Response;
+  try {
+    response = await fetch(api(creds, "/sermon"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    if (error instanceof TypeError) throw new Error(PLUGIN_HINT);
+    throw error;
+  }
   const body = await readJson(response);
-  if (!response.ok) throw new Error(wpMessage(body, response.status));
+  if (!response.ok) {
+    if (loginWasDropped(body, response.status)) {
+      preferred = null;
+      throw new Error(PLUGIN_HINT);
+    }
+    throw new Error(wpMessage(body, response.status));
+  }
   const record = body as {
     id?: number;
     link?: string;
