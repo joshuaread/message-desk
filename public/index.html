@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Message Desk — Citizens Church</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">Message Desk</div>
+      <div class="sub">Clean, transcribe, write, and publish a Sunday message.</div>
+      <div id="env" class="env"></div>
+    </header>
+
+    <main>
+      <!-- 1. Upload -->
+      <section class="card" id="card-upload">
+        <h2><span class="n">1</span> Upload the recording</h2>
+        <p class="hint">Phone <code>.m4a</code>, board <code>.wav</code> (any depth/rate), or <code>.mp3</code>. Streamed to the server.</p>
+        <input type="file" id="file" accept=".m4a,.wav,.mp3,audio/*" />
+        <div class="row">
+          <button id="upload-btn">Upload &amp; analyze</button>
+          <button id="runall-btn" class="secondary" disabled>Run all steps ▸</button>
+        </div>
+        <div id="upload-status" class="status"></div>
+      </section>
+
+      <!-- 2. Find the sermon -->
+      <section class="card hidden" id="card-detect">
+        <h2><span class="n">2</span> Find the message</h2>
+        <p id="detect-reason" class="hint"></p>
+        <div class="wave-wrap" id="wave-wrap">
+          <canvas id="wave" height="150"></canvas>
+          <div class="region" id="region"></div>
+          <div class="handle" id="handle-in"></div>
+          <div class="handle" id="handle-out"></div>
+        </div>
+        <div class="times">
+          <div class="nudge">
+            <span class="nlabel">In</span>
+            <button class="step" data-edge="in" data-delta="-5">−5s</button>
+            <button class="step" data-edge="in" data-delta="-1">−1s</button>
+            <input type="text" id="in-time" inputmode="decimal" />
+            <button class="step" data-edge="in" data-delta="1">+1s</button>
+            <button class="step" data-edge="in" data-delta="5">+5s</button>
+          </div>
+          <div class="nudge">
+            <span class="nlabel">Out</span>
+            <button class="step" data-edge="out" data-delta="-5">−5s</button>
+            <button class="step" data-edge="out" data-delta="-1">−1s</button>
+            <input type="text" id="out-time" inputmode="decimal" />
+            <button class="step" data-edge="out" data-delta="1">+1s</button>
+            <button class="step" data-edge="out" data-delta="5">+5s</button>
+          </div>
+        </div>
+        <div class="row">
+          <button id="play-in" class="secondary">▶ Preview start</button>
+          <button id="play-out" class="secondary">▶ Preview end</button>
+          <button id="stop-region" class="secondary">■ Stop</button>
+          <audio id="preview" preload="metadata"></audio>
+        </div>
+      </section>
+
+      <!-- 3. Clean + export -->
+      <section class="card hidden" id="card-export">
+        <h2><span class="n">3</span> Clean &amp; export</h2>
+        <p class="hint">Trim, mono, high-pass, denoise, two-pass loudness to −16 LUFS / TP −1.5, fades, MP3.</p>
+        <button id="export-btn">Clean &amp; export</button>
+        <div id="export-status" class="status"></div>
+        <audio id="cleaned" controls class="hidden"></audio>
+        <a id="cleaned-dl" class="hidden dl" download>Download cleaned MP3</a>
+      </section>
+
+      <!-- 4. Transcribe -->
+      <section class="card hidden" id="card-transcribe">
+        <h2><span class="n">4</span> Transcribe</h2>
+        <button id="transcribe-btn">Transcribe</button>
+        <span id="engine" class="badge"></span>
+        <div id="transcribe-status" class="status"></div>
+        <textarea id="transcript" rows="8" placeholder="Transcript appears here…"></textarea>
+      </section>
+
+      <!-- 5. SEO -->
+      <section class="card hidden" id="card-seo">
+        <h2><span class="n">5</span> Details &amp; SEO</h2>
+        <div class="grid">
+          <label>Title <input id="seo-title" type="text" /></label>
+          <label>Slug <input id="seo-slug" type="text" /></label>
+          <label>Speaker <input id="seo-speaker" type="text" /></label>
+          <label>Service date <input id="seo-date" type="date" /></label>
+          <label>Scripture <input id="seo-scripture" type="text" /></label>
+          <label>Series <input id="seo-series" type="text" /></label>
+          <label>Focus keyphrase <input id="seo-focus" type="text" /></label>
+          <label>Tags (comma separated) <input id="seo-tags" type="text" /></label>
+        </div>
+        <label>Meta description <textarea id="seo-meta" rows="2"></textarea></label>
+        <label>Excerpt <textarea id="seo-excerpt" rows="2"></textarea></label>
+        <label>Body <textarea id="seo-body" rows="6"></textarea></label>
+        <div class="row">
+          <button id="seo-btn">Generate from transcript</button>
+          <button id="seo-save" class="secondary">Save edits</button>
+          <span id="seo-engine" class="badge"></span>
+        </div>
+        <div id="seo-status" class="status"></div>
+      </section>
+
+      <!-- 6. Featured image -->
+      <section class="card hidden" id="card-image">
+        <h2><span class="n">6</span> Featured image</h2>
+        <p class="hint">Wordless flat banner art matched to the passage — no text baked in.</p>
+        <div class="row">
+          <button id="image-btn">Generate image</button>
+          <button id="image-next" class="secondary hidden">Try another ↻</button>
+          <span id="image-motif" class="badge"></span>
+        </div>
+        <div id="image-status" class="status"></div>
+        <div class="image-previews">
+          <img id="banner-preview" class="hidden" alt="Banner preview" />
+          <img id="image-preview" class="hidden" alt="Featured image preview" />
+        </div>
+      </section>
+
+      <!-- 7. WordPress -->
+      <section class="card hidden" id="card-wp">
+        <h2><span class="n">7</span> Publish to WordPress</h2>
+        <button id="probe-btn">Check site &amp; login</button>
+        <div id="probe-info" class="status"></div>
+        <div class="row">
+          <button id="publish-btn">Save draft</button>
+          <button id="publish-live-btn" class="danger">Publish live…</button>
+        </div>
+        <div id="publish-status" class="status"></div>
+        <div id="publish-result"></div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

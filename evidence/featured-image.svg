@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#211d1a"/>
+      <stop offset="0.6" stop-color="#1a1613"/>
+      <stop offset="1" stop-color="#0f0c0a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.18" r="0.6">
+      <stop offset="0" stop-color="#c9a36a" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#c9a36a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+  <g fill="none" stroke="#c9a36a" stroke-opacity="0.16">
+    <circle cx="1720" cy="150" r="120" stroke-width="2"/>
+    <circle cx="1720" cy="150" r="200" stroke-width="2"/>
+    <circle cx="1720" cy="150" r="300" stroke-width="2"/>
+  </g>
+  <rect x="160" y="397" width="96" height="6" fill="#c9a36a"/>
+  <text x="160" y="453" font-family="Poppins" font-weight="600" font-size="34" fill="#c9a36a" letter-spacing="8">CITIZENS CHURCH</text>
+  <text font-family="Poppins" font-weight="700" font-size="96" fill="#f4efe8"><tspan x="160" y="563">Fear Reveals What We Worship</tspan></text>
+  <text x="160" y="683" font-family="Poppins" font-weight="500" font-size="40" fill="#d8cdbd" letter-spacing="1">Daniel Williamson   ·   October 25, 2026   ·   Jonah 1:7-16</text>
+  <text x="160" y="747" font-family="Poppins" font-weight="400" font-size="34" fill="#b8ad9e" letter-spacing="1">Series: Jonah</text>
+</svg>
