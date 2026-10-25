@@ -13,7 +13,7 @@ import { buildHeuristicSeo, slugify } from "./seo.js";
 import { xaiSeo } from "./xai.js";
 import { renderImages, formatDate } from "./image.js";
 import { MOTIFS, chooseMotif } from "./banner.js";
-import { WpClient, buildContent, shouldEmbedAudio } from "./wordpress.js";
+import { WpClient, buildContent, shouldEmbedAudio, buildSermonMeta } from "./wordpress.js";
 import { resolvePublishStatus } from "./guard.js";
 import { defaultServiceDate } from "./dates.js";
 import {
@@ -424,13 +424,13 @@ export function buildApp(config, ffmpegInfo) {
     }
 
     // Sermon meta (matches the real site's sermon_* structure).
-    const meta = {
-      sermon_speaker: seo.speaker,
-      sermon_scripture: seo.scripture,
-      sermon_series: seo.series,
-      sermon_audio_url: media.source_url,
-      sermon_transcript: (job.transcript?.text ?? "").replace(/\n\n/g, "\r\n\r\n"),
-    };
+    // Includes sermon_banner_svg (the motif picked in the image step).
+    const meta = buildSermonMeta(seo, {
+      audioUrl: media.source_url,
+      transcript: job.transcript?.text ?? "",
+      bannerSvg: job.image?.bannerSvg ?? "",
+      bannerId: job.id,
+    });
     // SEO plugin meta ONLY when that plugin is detected.
     let seoPlugin = "none";
     if (probeResult.seo.yoast) {

@@ -220,3 +220,29 @@ export function buildFeaturedSvg(motif) {
     `<rect width="1920" height="1080" fill="url(#csbf)"/>` +
     `<g transform="translate(${offsetX} ${offsetY}) scale(${scale})">${scene(motif)}</g></svg>`;
 }
+
+/**
+ * Prepare a banner SVG for the citizenschur.ch sermon template (meta
+ * `sermon_banner_svg`): drop the fixed root width/height so it scales like the
+ * site's own banners, add the site's preserveAspectRatio/role, and suffix every
+ * id (and its url(#id) references) so gradients never clash with the page's
+ * built-in banners (which use ids like csb / csarch).
+ */
+export function siteBannerSvg(svg, suffix) {
+  const s = String(svg || "").trim();
+  if (!s.startsWith("<svg")) return "";
+  const tag = (String(suffix || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)) || "md";
+  const ids = [...s.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  let out = s.replace(/^<svg\b[^>]*>/, (root) =>
+    root
+      .replace(/\s(width|height|preserveAspectRatio|role)="[^"]*"/g, "")
+      .replace(/>$/, ' preserveAspectRatio="xMidYMid slice" role="presentation">'),
+  );
+  for (const id of ids) {
+    const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out
+      .replace(new RegExp(`\\sid="${esc}"`, "g"), ` id="${id}-${tag}"`)
+      .replace(new RegExp(`url\\(#${esc}\\)`, "g"), `url(#${id}-${tag})`);
+  }
+  return out;
+}

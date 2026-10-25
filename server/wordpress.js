@@ -3,6 +3,7 @@
 // carries both `Authorization: Basic ...` and `X-Message-Desk: Basic ...` (the
 // message-desk-auth.php mu-plugin maps the latter back to PHP_AUTH on Flywheel).
 import { readFile } from "node:fs/promises";
+import { siteBannerSvg } from "./banner.js";
 
 const DESK_HEADER = "X-Message-Desk";
 
@@ -42,6 +43,25 @@ export function shouldEmbedAudio(postType) {
   // The sermon layout renders its own player from sermon_audio_url (as on
   // citizenschur.ch), so only the plain `post` fallback needs an embedded block.
   return postType === "post";
+}
+
+/**
+ * The sermon_* meta Message Desk writes (matches the real site's structure),
+ * plus `sermon_banner_svg`: the wordless banner the user picked in the image
+ * step, made template-ready with per-sermon ids. Omitted when there is no
+ * banner, so the site falls back to its passage/default banners.
+ */
+export function buildSermonMeta(seo, { audioUrl = "", transcript = "", bannerSvg = "", bannerId = "" } = {}) {
+  const meta = {
+    sermon_speaker: seo.speaker,
+    sermon_scripture: seo.scripture,
+    sermon_series: seo.series,
+    sermon_audio_url: audioUrl,
+    sermon_transcript: String(transcript || "").replace(/\n\n/g, "\r\n\r\n"),
+  };
+  const banner = siteBannerSvg(bannerSvg, bannerId);
+  if (banner) meta.sermon_banner_svg = banner;
+  return meta;
 }
 
 export class WpClient {

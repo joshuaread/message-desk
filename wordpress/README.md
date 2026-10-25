@@ -44,3 +44,37 @@ Message Desk targets the real site's structure (see `../` task notes):
 
 The throwaway test WordPress reproduces this exactly; see
 `../test/wp/mu-plugins/` for the fixture.
+
+## Per-sermon banners (`message-desk-auth.php` 1.1.0)
+
+The same mu-plugin (auth code unchanged) also:
+
+- registers `sermon_banner_svg` on `sermon` (string, single, `show_in_rest`,
+  writable by users who can `edit_posts`). Message Desk sends the wordless
+  1120x240 banner the user picked in the image step, with per-sermon gradient
+  ids (e.g. `csb-<jobid>`). Unknown meta keys are ignored by WordPress, so the
+  desk is safe to run before this plugin is deployed.
+- sanitizes it on save with `wp_kses` to a small SVG subset (svg, defs,
+  linearGradient, stop, pattern, rect, circle, path, g; geometry/paint
+  attributes only; no script, style, href, or event attributes). Anything that
+  is not a single clean `<svg>` is stored as `''`.
+- prints it on single sermon pages as `<template id="cs-banner-svg">…</template>`
+  (at `wp_body_open`, `wp_footer` as fallback), only when non-empty.
+
+Offline check against real WordPress kses: `WP_CORE=/path/to/wordpress npm run test:php`.
+
+### One-time template change (wp_template 1615)
+
+`template-1615/patch-banner.php` patches the sermon template's inline script so
+the banner comes from `#cs-banner-svg` first, then the passage banners (`PB`),
+then the Jonah/arches defaults:
+
+```
+php wordpress/template-1615/patch-banner.php /tmp/tpl.html /tmp/tpl-new.html
+```
+
+It exits 1 and writes nothing unless the needle occurs exactly once (or if the
+content is already patched). By default it also removes `has-img` when there is
+explicit art: with a featured image the site CSS hides the banner SVG and shows
+the featured image cover-cropped, which for the 1920x1080 scene is mostly empty
+sky. `--minimal` applies only the literal lookup.
