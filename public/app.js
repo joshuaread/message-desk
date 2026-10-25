@@ -161,16 +161,30 @@ function playFrom(start, stopAt) {
   if (!state.jobId) return;
   const audio = $("preview");
   stopPreview();
-  audio.src = `/api/job/${state.jobId}/preview`;
-  audio.currentTime = start;
-  const onReady = () => {
-    audio.currentTime = start;
-    audio.play().catch(() => {});
-    const ms = Math.max(500, (stopAt - start) * 1000);
+  const url = `/api/job/${state.jobId}/preview`;
+  if (!audio.src.endsWith(url)) {
+    audio.src = url;
+    audio.load();
+  }
+  const ms = Math.max(500, (stopAt - start) * 1000);
+  const armStop = () => {
+    if (state.previewStop) clearTimeout(state.previewStop);
     state.previewStop = setTimeout(stopPreview, ms);
   };
-  if (audio.readyState >= 1) onReady();
-  else audio.addEventListener("loadedmetadata", onReady, { once: true });
+  const seek = () => {
+    audio.currentTime = start;
+    armStop();
+  };
+  // play() must run directly inside the click (Safari/iOS block it otherwise).
+  const p = audio.play();
+  if (audio.readyState >= 1) seek();
+  else audio.addEventListener("loadedmetadata", seek, { once: true });
+  if (p && p.catch) {
+    p.catch((err) => {
+      console.error("preview play failed", err);
+      alert("Preview couldn't play: " + (err && err.message ? err.message : err));
+    });
+  }
 }
 
 // --- pipeline steps -------------------------------------------------------
