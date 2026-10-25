@@ -1,8 +1,17 @@
 node_modules
-dist
-.output
-.nitro
+data
 .env
 .env.*
+!.env.example
 *.local
 .DS_Store
+
+# Evidence: keep the JSON summary + SVG; ignore large binaries.
+evidence/*.png
+evidence/*.jpg
+evidence/*.mp3
+evidence/*.m4a
+evidence/*.wav
+
+# Generated test fixtures
+test/audio/
