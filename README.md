@@ -133,7 +133,7 @@ Target: Josh's always-on Ubuntu Mac Pro, reachable on the LAN / Tailscale.
    sudo chmod 600 /etc/message-desk/env
    ```
    Set at least `XAI_API_KEY`, `WP_URL=https://citizenschur.ch`,
-   `WP_USER=sermonupload`, and `WP_APP_PASSWORD` (a WordPress Application
+   `WP_USER=josh`, and `WP_APP_PASSWORD` (a WordPress Application
    Password). Set `DESK_PASSWORD` to require a login for the UI, and
    `TZ=America/Chicago` for the default service date.
 
