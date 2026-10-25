@@ -1,0 +1,24 @@
+[Unit]
+Description=Message Desk — sermon cleanup & WordPress publisher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Where the repo is checked out on the Mac Pro (adjust if different).
+WorkingDirectory=/opt/message-desk
+# Secrets + config live here, NOT in the repo. See .env.example for the keys.
+EnvironmentFile=/etc/message-desk/env
+ExecStart=/usr/bin/node server/index.js
+Restart=always
+RestartSec=3
+
+# Hardening.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+# DATA_DIR must be writable. If it lives under /opt/message-desk/data, allow it:
+ReadWritePaths=/opt/message-desk/data
+
+[Install]
+WantedBy=multi-user.target

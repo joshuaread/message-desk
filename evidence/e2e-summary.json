@@ -1,0 +1,208 @@
+{
+  "startedAt": "2026-10-25T20:09:20.305Z",
+  "truth": {
+    "speechStart": 120,
+    "speechEnd": 200.9,
+    "preLen": 120,
+    "speechLen": 80.9,
+    "tailLen": 90,
+    "totalLen": 290.9,
+    "scripture": "Jonah 1:7-16",
+    "tolerance": 10
+  },
+  "assertions": [
+    {
+      "name": "got a job id",
+      "pass": true,
+      "detail": "mvo9hajh-172ae663"
+    },
+    {
+      "name": "detection in within ±10s",
+      "pass": true,
+      "detail": "3.3s"
+    },
+    {
+      "name": "detection out within ±10s",
+      "pass": true,
+      "detail": "3.5s"
+    },
+    {
+      "name": "export LUFS within -16 ±1",
+      "pass": true,
+      "detail": "-16.4 LUFS"
+    },
+    {
+      "name": "export true peak <= -1.5 dBTP",
+      "pass": true,
+      "detail": "-1.5 dBTP"
+    },
+    {
+      "name": "a transcript was produced",
+      "pass": true,
+      "detail": "whisper"
+    },
+    {
+      "name": "SEO title is not the first spoken sentence",
+      "pass": true,
+      "detail": "Fear Reveals What We Worship"
+    },
+    {
+      "name": "SEO scripture parsed to Book chapter:verses",
+      "pass": true,
+      "detail": "Jonah 1:7-16"
+    },
+    {
+      "name": "image alt text set",
+      "pass": true,
+      "detail": "Fear Reveals What We Worship — Citizens Church, Daniel Williamson, October 25, 2026"
+    },
+    {
+      "name": "publish guard rejects unconfirmed publish",
+      "pass": true,
+      "detail": "status 400"
+    },
+    {
+      "name": "draft created",
+      "pass": true,
+      "detail": "draft"
+    },
+    {
+      "name": "post is published",
+      "pass": true,
+      "detail": "publish"
+    },
+    {
+      "name": "featured image attached",
+      "pass": true,
+      "detail": "media 9"
+    },
+    {
+      "name": "sermon_* meta kept by WP",
+      "pass": true,
+      "detail": "sermon_speaker,sermon_scripture,sermon_series,sermon_audio_url,sermon_transcript"
+    },
+    {
+      "name": "exactly one <audio> player on the page",
+      "pass": true,
+      "detail": "found 1"
+    },
+    {
+      "name": "player source is the uploaded cleaned MP3",
+      "pass": true,
+      "detail": "http://127.0.0.1:9400/wp-content/uploads/2026/10/Message-10-25-26-cleaned-1.mp3"
+    },
+    {
+      "name": "featured image rendered in the sermon header",
+      "pass": true
+    },
+    {
+      "name": "REST post has featured_media",
+      "pass": true,
+      "detail": "9"
+    },
+    {
+      "name": "REST meta has sermon_audio_url",
+      "pass": true
+    },
+    {
+      "name": "WAV detection within ±10s",
+      "pass": true,
+      "detail": "in 3.3s / out 3.5s"
+    },
+    {
+      "name": "WAV export within loudness spec",
+      "pass": true,
+      "detail": "-16.4 LUFS / -1.5 dBTP"
+    }
+  ],
+  "wordpress": {
+    "base": "http://127.0.0.1:9400",
+    "user": "deskbot"
+  },
+  "desk": "http://127.0.0.1:35853",
+  "detection": {
+    "detectedIn": 116.7,
+    "detectedOut": 204.4,
+    "truthIn": 120,
+    "truthOut": 200.9,
+    "inErrSec": 3.3,
+    "outErrSec": 3.5,
+    "confidence": 0.94
+  },
+  "nudge": {
+    "in": 116.7,
+    "out": 204.4
+  },
+  "export": {
+    "durationSec": 87.8,
+    "lufs": -16.4,
+    "truePeak": -1.5,
+    "lra": 2,
+    "passes": 3,
+    "inSpec": true,
+    "filename": "Message-10-25-26-cleaned.mp3"
+  },
+  "transcript": {
+    "engine": "whisper",
+    "note": "whisper (xAI rejected: {\"code\":\"Client specified an invalid argument\",\"error\":\"Incorrect API key provided. You can obtain an API key from https://console.x.ai.\"})",
+    "chars": 1200,
+    "words": 240,
+    "sample": "Good morning, citizen's church. It is good to be together this morning. If you have your Bible, turn with me to Jonah chapter 1, verses 7 through 16. This is th"
+  },
+  "seo": {
+    "engine": "xAI SEO failed ({\"code\":\"invalid-argument\",\"error\":\"Incorrect API key provided. You can obtain an API key from https://console.x.ai.\"}); used heuristics.",
+    "title": "Fear Reveals What We Worship",
+    "slug": "fear-reveals-what-we-worship",
+    "scripture": "Jonah 1:7-16",
+    "metaDescription": "Good morning, citizen's church. It is good to be together this",
+    "excerpt": "The message walks through Jonah 1:7-16. Good morning, citizen's church. It is good to be together this morning.",
+    "tags": [
+      "jonah",
+      "morning",
+      "afraid",
+      "fear",
+      "worship",
+      "storm",
+      "good",
+      "have"
+    ],
+    "date": "2026-10-25"
+  },
+  "image": {
+    "alt": "Fear Reveals What We Worship — Citizens Church, Daniel Williamson, October 25, 2026",
+    "filename": "fear-reveals-what-we-worship-citizens-church.png"
+  },
+  "publish": {
+    "postId": 10,
+    "status": "publish",
+    "link": "http://127.0.0.1:9400/messages/fear-reveals-what-we-worship-2/",
+    "mediaId": 8,
+    "imageId": 9,
+    "audioUrl": "http://127.0.0.1:9400/wp-content/uploads/2026/10/Message-10-25-26-cleaned-1.mp3",
+    "keptMeta": [
+      "sermon_speaker",
+      "sermon_scripture",
+      "sermon_series",
+      "sermon_audio_url",
+      "sermon_transcript"
+    ],
+    "seoPlugin": "none"
+  },
+  "verify": {
+    "pageUrl": "http://127.0.0.1:9400/messages/fear-reveals-what-we-worship-2/",
+    "audioCount": 1,
+    "mp3InPlayer": true,
+    "featuredImageInHeader": true
+  },
+  "wav": {
+    "detectedIn": 116.7,
+    "detectedOut": 204.4,
+    "inErrSec": 3.3,
+    "outErrSec": 3.5,
+    "lufs": -16.4,
+    "truePeak": -1.5,
+    "inSpec": true
+  },
+  "ok": true,
+  "finishedAt": "2026-10-25T20:10:31.994Z"
+}
