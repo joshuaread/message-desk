@@ -9,6 +9,7 @@ const state = {
   peaksPerSec: 8,
   sel: { in: 0, out: 0 },
   previewStop: null,
+  image: { motif: null, motifs: [] },
 };
 
 const $ = (id) => document.getElementById(id);
@@ -325,21 +326,38 @@ async function saveSeo() {
   setStatus($("seo-status"), "Edits saved.", "ok");
 }
 
-async function doImage() {
+async function doImage(motif) {
   if (!state.jobId) return;
   // Persist current edits first so the image uses them.
   await saveSeo().catch(() => {});
   setStatus($("image-status"), "Rendering featured image", "busy");
+  const body = readSeo();
+  if (motif) body.motif = motif;
   const img = await api(`/api/job/${state.jobId}/image`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(readSeo()),
+    body: JSON.stringify(body),
   });
+  state.image = { motif: img.motif, motifs: img.motifs || [] };
+  // Banner preview (1120x240 SVG) inline, featured PNG beside it.
+  const banner = $("banner-preview");
+  banner.src = "data:image/svg+xml;utf8," + encodeURIComponent(img.bannerSvg);
+  banner.classList.remove("hidden");
   const el = $("image-preview");
   el.src = img.pngUrl;
   el.classList.remove("hidden");
+  $("image-motif").textContent = `motif: ${img.motif}`;
+  $("image-next").classList.remove("hidden");
   setStatus($("image-status"), img.image.alt, "ok");
   return img;
+}
+
+// Cycle to the next motif in the list returned by the server.
+function tryAnotherMotif() {
+  const motifs = state.image.motifs;
+  if (!motifs.length) return doImage();
+  const i = motifs.indexOf(state.image.motif);
+  return doImage(motifs[(i + 1) % motifs.length]);
 }
 
 async function doProbe() {
@@ -437,6 +455,7 @@ function wire() {
   $("seo-btn").addEventListener("click", () => doSeo().catch((e) => setStatus($("seo-status"), e.message, "err")));
   $("seo-save").addEventListener("click", () => saveSeo().catch((e) => setStatus($("seo-status"), e.message, "err")));
   $("image-btn").addEventListener("click", () => doImage().catch((e) => setStatus($("image-status"), e.message, "err")));
+  $("image-next").addEventListener("click", () => tryAnotherMotif().catch((e) => setStatus($("image-status"), e.message, "err")));
   $("probe-btn").addEventListener("click", doProbe);
   $("publish-btn").addEventListener("click", () => doPublish(false));
   $("publish-live-btn").addEventListener("click", () => doPublish(true));

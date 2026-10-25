@@ -33,11 +33,16 @@ default) to WordPress with the audio, image, and sermon metadata in place.
    temperature 0, beam 5, VAD). It always reports which engine produced the
    transcript and why (e.g. `whisper (xAI rejected: 400)`), and builds readable
    paragraphs from the word timings.
-5. **Featured image.** A branded 1920×1080 SVG (Citizens Church look — dark
-   charcoal, warm gold accent, off-white Poppins) rasterized to PNG + JPG with
-   `@resvg/resvg-js` using the **bundled** Poppins OFL fonts, so it renders the
-   same on a bare server. Long titles wrap. The PNG is uploaded with alt text
-   (WordPress rejects SVG).
+5. **Featured image.** A wordless, flat 1920×1080 SVG banner in the Citizens
+   Church site style — warm hills under a soft sun (or the site arch pattern) —
+   rasterized to PNG + JPG with `@resvg/resvg-js`. `server/banner.js` holds a
+   small motif library (hills, boat, fish, storm, skyline, vine, cross, book,
+   dove, mountain, arches) in that exact flat palette; `chooseMotif()` picks one
+   from the scripture/title/keywords (e.g. *Jonah 1:17* → the great fish,
+   *Jonah 1:7–16* → the storm-tossed boat, non-Jonah → the arches). The UI shows
+   a 1120×240 banner preview beside the featured image with a **Try another**
+   button that cycles the motifs. No text is baked in, so nothing stretches or
+   mis-wraps. The PNG is uploaded with alt text (WordPress rejects SVG).
 6. **SEO.** xAI chat completions (`XAI_MODEL`, default `grok-4.7`,
    `json_object`) writes a real title (never the first spoken sentence), slug,
    meta description (≤155), a two-sentence excerpt, body summary, normalized

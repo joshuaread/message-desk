@@ -154,7 +154,9 @@ label input, label textarea { margin-top: 3px; }
 .nudge .step { padding: 7px 10px; font-size: 13px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); }
 .nudge input { width: 92px; text-align: center; }
 
-#image-preview { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid var(--line); }
+.image-previews { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+#banner-preview { width: 100%; border-radius: 10px; border: 1px solid var(--line); }
+#image-preview { width: 100%; border-radius: 10px; border: 1px solid var(--line); }
 #publish-result { margin-top: 10px; font-size: 14px; }
 #publish-result a { color: var(--gold); }
 audio { width: 100%; margin-top: 10px; }

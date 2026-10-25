@@ -11,7 +11,8 @@ import { transcribe } from "./transcribe.js";
 import { wordsToTranscript, textToParagraphs, clipForSuggestion, sermonKeyterms } from "./transcript.js";
 import { buildHeuristicSeo, slugify } from "./seo.js";
 import { xaiSeo } from "./xai.js";
-import { renderImages, buildSvg, formatDate } from "./image.js";
+import { renderImages, formatDate } from "./image.js";
+import { MOTIFS, chooseMotif } from "./banner.js";
 import { WpClient, buildContent, shouldEmbedAudio } from "./wordpress.js";
 import { resolvePublishStatus } from "./guard.js";
 import { defaultServiceDate } from "./dates.js";
@@ -184,6 +185,15 @@ export function buildApp(config, ffmpegInfo) {
     if (!job) return;
     res.type("image/jpeg").sendFile(jobPaths(config.dataDir, job.id).jpg);
   }));
+  app.get("/api/job/:id/banner.svg", wrap(async (req, res) => {
+    const job = await requireJob(req, res);
+    if (!job) return;
+    if (!job.image?.bannerSvg) {
+      res.status(404).json({ error: "No banner generated yet." });
+      return;
+    }
+    res.type("image/svg+xml").send(job.image.bannerSvg);
+  }));
 
   // --- Export (trim + clean + loudnorm) ------------------------------------
   app.post("/api/job/:id/export", wrap(async (req, res) => {
@@ -303,17 +313,41 @@ export function buildApp(config, ffmpegInfo) {
       scripture: String(req.body?.scripture ?? seo?.scripture ?? ""),
       series: String(req.body?.series ?? seo?.series ?? ""),
     };
+    // Motif choice is fed by the request keywords plus the SEO focus/tags.
+    const reqKeywords = Array.isArray(req.body?.keywords) ? req.body.keywords : [];
+    const keywords = [...reqKeywords, seo?.focusKeyphrase, ...(seo?.tags ?? [])]
+      .map((k) => String(k ?? "").trim())
+      .filter(Boolean);
+    // An explicit, valid motif overrides the automatic choice.
+    const requested = typeof req.body?.motif === "string" ? req.body.motif : "";
+    const motif = MOTIFS.includes(requested)
+      ? requested
+      : chooseMotif({ scripture: fields.scripture, title: fields.title, keywords });
+
     setStep(job, "image", "running");
     await saveJob(config.dataDir, job);
-    await renderImages(fields, paths.png, paths.jpg);
-    await writeFile(paths.svg, buildSvg(fields));
+    const result = await renderImages(fields, paths.png, paths.jpg, { motif });
+    await writeFile(paths.svg, result.svg);
     const alt =
       seo?.imageAlt ||
       `${fields.title} — Citizens Church${fields.speaker ? `, ${fields.speaker}` : ""}${fields.date ? `, ${formatDate(fields.date)}` : ""}`;
-    job.image = { alt, filename: `${slugify(fields.title)}-citizens-church.png` };
+    job.image = {
+      alt,
+      filename: `${slugify(fields.title)}-citizens-church.png`,
+      motif: result.motif,
+      passageKey: result.passageKey,
+      bannerSvg: result.bannerSvg,
+    };
     setStep(job, "image", "done");
     await saveJob(config.dataDir, job);
-    res.json({ image: job.image, pngUrl: `/api/job/${job.id}/image.png?t=${Date.now()}` });
+    res.json({
+      image: job.image,
+      pngUrl: `/api/job/${job.id}/image.png?t=${Date.now()}`,
+      motif: result.motif,
+      motifs: MOTIFS,
+      bannerSvg: result.bannerSvg,
+      passageKey: result.passageKey,
+    });
   }));
 
   // --- WordPress probe -----------------------------------------------------

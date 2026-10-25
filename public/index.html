@@ -108,9 +108,17 @@
       <!-- 6. Featured image -->
       <section class="card hidden" id="card-image">
         <h2><span class="n">6</span> Featured image</h2>
-        <button id="image-btn">Generate image</button>
+        <p class="hint">Wordless flat banner art matched to the passage — no text baked in.</p>
+        <div class="row">
+          <button id="image-btn">Generate image</button>
+          <button id="image-next" class="secondary hidden">Try another ↻</button>
+          <span id="image-motif" class="badge"></span>
+        </div>
         <div id="image-status" class="status"></div>
-        <img id="image-preview" class="hidden" alt="Featured image preview" />
+        <div class="image-previews">
+          <img id="banner-preview" class="hidden" alt="Banner preview" />
+          <img id="image-preview" class="hidden" alt="Featured image preview" />
+        </div>
       </section>
 
       <!-- 7. WordPress -->

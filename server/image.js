@@ -1,12 +1,13 @@
-// Branded 1920x1080 featured image. Built as an SVG (Citizens Church look —
-// warm dark charcoal background, warm gold/tan accent, off-white Poppins type)
-// and rasterized with @resvg/resvg-js using the bundled OFL fonts so it renders
-// the same on a fresh server with no system fonts. JPG is produced via ffmpeg.
+// Featured image (1920x1080) for a sermon: wordless, flat SVG banner art in the
+// Citizens Church site style (warm hills / arches, no text). The motif is chosen
+// from scripture/title/keywords, rasterized with @resvg/resvg-js, and a JPG is
+// produced via ffmpeg. The companion 1120x240 banner SVG is returned alongside.
 import { Resvg } from "@resvg/resvg-js";
 import { spawn } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { buildFeaturedSvg, buildBannerSvg, chooseMotif, passageKey } from "./banner.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FONT_DIR = resolve(here, "../assets/fonts");
@@ -69,67 +70,24 @@ export function formatDate(iso) {
   return `${month} ${day}, ${year}`;
 }
 
-/** @typedef {{title:string, speaker:string, date:string, scripture:string, series:string}} ImageFields */
+/** @typedef {{title:string, speaker:string, date:string, scripture:string, series:string, keywords?:string[]}} ImageFields */
 
-export function buildSvg(fields) {
-  const title = (fields.title || "Sunday Message").trim();
-  let titleSize = 118;
-  if (title.length > 26) titleSize = 96;
-  if (title.length > 44) titleSize = 78;
-  if (title.length > 70) titleSize = 64;
-  const maxChars = Math.max(10, Math.floor((W - 320) / (titleSize * 0.55)));
-  const lines = wrapText(title, maxChars).slice(0, 4);
-  const lineHeight = titleSize * 1.12;
-
-  const metaBits = [fields.speaker, formatDate(fields.date), fields.scripture]
-    .map((s) => (s ?? "").trim())
-    .filter(Boolean);
-  const meta = metaBits.join("   ·   ");
-  const series = (fields.series ?? "").trim();
-
-  const blockHeight = lines.length * lineHeight;
-  const titleTop = H / 2 - blockHeight / 2 + titleSize * 0.8;
-
-  const titleTspans = lines
-    .map((line, i) => `<tspan x="160" y="${Math.round(titleTop + i * lineHeight)}">${escapeXml(line)}</tspan>`)
-    .join("");
-
-  const metaY = Math.round(titleTop + (lines.length - 1) * lineHeight + 120);
-  const seriesSvg = series
-    ? `<text x="160" y="${metaY + 64}" font-family="Poppins" font-weight="400" font-size="34" fill="#b8ad9e" letter-spacing="1">Series: ${escapeXml(series)}</text>`
-    : "";
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#211d1a"/>
-      <stop offset="0.6" stop-color="#1a1613"/>
-      <stop offset="1" stop-color="#0f0c0a"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.82" cy="0.18" r="0.6">
-      <stop offset="0" stop-color="#c9a36a" stop-opacity="0.22"/>
-      <stop offset="1" stop-color="#c9a36a" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <rect width="${W}" height="${H}" fill="url(#bg)"/>
-  <rect width="${W}" height="${H}" fill="url(#glow)"/>
-  <g fill="none" stroke="#c9a36a" stroke-opacity="0.16">
-    <circle cx="1720" cy="150" r="120" stroke-width="2"/>
-    <circle cx="1720" cy="150" r="200" stroke-width="2"/>
-    <circle cx="1720" cy="150" r="300" stroke-width="2"/>
-  </g>
-  <rect x="160" y="${Math.round(titleTop - titleSize - 70)}" width="96" height="6" fill="#c9a36a"/>
-  <text x="160" y="${Math.round(titleTop - titleSize - 14)}" font-family="Poppins" font-weight="600" font-size="34" fill="#c9a36a" letter-spacing="8">CITIZENS CHURCH</text>
-  <text font-family="Poppins" font-weight="700" font-size="${titleSize}" fill="#f4efe8">${titleTspans}</text>
-  ${meta ? `<text x="160" y="${metaY}" font-family="Poppins" font-weight="500" font-size="40" fill="#d8cdbd" letter-spacing="1">${escapeXml(meta)}</text>` : ""}
-  ${seriesSvg}
-</svg>`;
+/**
+ * Build the wordless featured SVG (1920x1080). The motif is passed in, or chosen
+ * automatically from the fields when omitted.
+ */
+export function buildSvg(fields, motif) {
+  const m = motif || chooseMotif({
+    scripture: fields.scripture,
+    title: fields.title,
+    keywords: fields.keywords,
+  });
+  return buildFeaturedSvg(m);
 }
 
 export function renderPng(svg) {
   const resvg = new Resvg(svg, {
-    background: "#15110e",
+    background: "#f1e6cf",
     fitTo: { mode: "width", value: W },
     font: {
       fontFiles: FONT_FILES,
@@ -154,11 +112,21 @@ function pngToJpg(pngPath, jpgPath) {
   });
 }
 
-/** Render the SVG to both PNG and JPG on disk. */
-export async function renderImages(fields, pngPath, jpgPath) {
-  const svg = buildSvg(fields);
+/**
+ * Render the featured image to PNG + JPG on disk. Picks the motif via
+ * chooseMotif (scripture/title/keywords) unless one is passed in opts.motif.
+ * Returns the featured svg, the companion 1120x240 bannerSvg, the motif used,
+ * and the normalized passageKey.
+ */
+export async function renderImages(fields, pngPath, jpgPath, opts = {}) {
+  const motif = opts.motif || chooseMotif({
+    scripture: fields.scripture,
+    title: fields.title,
+    keywords: fields.keywords,
+  });
+  const svg = buildFeaturedSvg(motif);
   const png = renderPng(svg);
   await writeFile(pngPath, png);
   await pngToJpg(pngPath, jpgPath);
-  return { svg };
+  return { svg, bannerSvg: buildBannerSvg(motif), motif, passageKey: passageKey(fields.scripture || "") };
 }
